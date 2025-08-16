@@ -1,7 +1,7 @@
 {
   "is-main": true,
   "import": [
-    "username/qrc/lib",
-    "username/qrc/lib/render"
+    "bobzhang/qrc/lib",
+    "bobzhang/qrc/lib/render"
   ]
 }

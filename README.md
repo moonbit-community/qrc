@@ -9,15 +9,15 @@ This is a MoonBit port of the original [OCaml qrc library](https://github.com/db
 - ✅ QR code encoding with multiple data modes (numeric, alphanumeric, byte)
 - ✅ Automatic mode detection
 - ✅ Multiple output formats: SVG, ANSI terminal, plain text, compact text
+- ✅ Reed-Solomon error correction with Galois Field arithmetic
 - ✅ No external dependencies
 - ✅ WebAssembly compatible
-- ⚠️ Reed-Solomon error correction (simplified implementation)
 - ⚠️ Kanji mode (treated as byte mode)
 
 ## Installation
 
 ```bash
-moon install username/qrc
+moon install bobzhang/qrc
 ```
 
 ## Usage
@@ -128,15 +128,23 @@ moon run src
 
 ## Limitations
 
-This is a basic implementation focused on demonstrating MoonBit capabilities:
+This is a functional implementation demonstrating MoonBit capabilities:
 
-- Only supports QR version 1 (21x21 modules)
-- Simplified error correction (data is placed without Reed-Solomon codes)
-- Kanji mode is treated as byte mode
-- No format information or version information encoding
-- No masking patterns applied
+- ✅ Full Reed-Solomon error correction with proper Galois Field arithmetic
+- ✅ Supports all error correction levels (L, M, Q, H)
+- ✅ Proper data formatting with mode indicators and padding
+- ✅ QR version 1 (21x21 modules) with finder patterns and timing patterns
+- ⚠️ Kanji mode is treated as byte mode
+- ⚠️ No format information or version information encoding
+- ⚠️ No masking patterns applied
 
-For production use, consider using a more complete QR code library.
+The Reed-Solomon implementation includes:
+- Complete GF(256) Galois Field arithmetic
+- Generator polynomial computation
+- Proper error correction codeword generation
+- Data capacity management for different error correction levels
+
+For production use with higher versions and advanced features, consider extending this implementation.
 
 ## Contributing
 

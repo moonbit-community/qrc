@@ -363,8 +363,19 @@ pub fn generate_qr(data : String, error_correction : ErrorCorrectionLevel) -> QR
   let matrix = init_matrix(version)
   let encoded_data = encode_data(data, mode)
   
-  // For now, place data directly without error correction
-  place_data(matrix, encoded_data)
+  // Apply Reed-Solomon error correction
+  let corrected_data = apply_error_correction(encoded_data, mode, version, error_correction)
+  
+  // Convert corrected data to bits for placement
+  let mut bit_data = []
+  for codeword in corrected_data {
+    for bit = 7; bit >= 0; bit = bit - 1 {
+      bit_data = bit_data + [(codeword >> bit) & 1]
+    }
+  }
+  
+  // Place corrected data in matrix
+  place_data(matrix, bit_data)
   
   { version, error_correction, mode, data, matrix }
 }
@@ -380,3 +391,194 @@ pub fn encode(data : String) -> QRCode {
 pub fn encode_with_ec(data : String, ec : ErrorCorrectionLevel) -> QRCode {
   generate_qr(data, ec)
 }
+
+// Reed-Solomon Error Correction Implementation
+
+// Galois Field arithmetic for GF(256)
+let gf_exp = [
+  1, 2, 4, 8, 16, 32, 64, 128, 29, 58, 116, 232, 205, 135, 19, 38,
+  76, 152, 45, 90, 180, 117, 234, 201, 143, 3, 6, 12, 24, 48, 96, 192,
+  157, 39, 78, 156, 37, 74, 148, 53, 106, 212, 181, 119, 238, 193, 159, 35,
+  70, 140, 5, 10, 20, 40, 80, 160, 93, 186, 105, 210, 185, 111, 222, 161,
+  95, 190, 97, 194, 153, 47, 94, 188, 101, 202, 137, 15, 30, 60, 120, 240,
+  253, 231, 211, 187, 107, 214, 177, 127, 254, 225, 223, 163, 91, 182, 113, 226,
+  217, 175, 67, 134, 17, 34, 68, 136, 13, 26, 52, 104, 208, 189, 103, 206,
+  129, 31, 62, 124, 248, 237, 199, 147, 59, 118, 236, 197, 151, 51, 102, 204,
+  133, 23, 46, 92, 184, 109, 218, 169, 79, 158, 33, 66, 132, 21, 42, 84,
+  168, 77, 154, 41, 82, 164, 85, 170, 73, 146, 57, 114, 228, 213, 183, 115,
+  230, 209, 191, 99, 198, 145, 63, 126, 252, 229, 215, 179, 123, 246, 241, 255,
+  227, 219, 171, 75, 150, 49, 98, 196, 149, 55, 110, 220, 165, 87, 174, 65,
+  130, 25, 50, 100, 200, 141, 7, 14, 28, 56, 112, 224, 221, 167, 83, 166,
+  81, 162, 89, 178, 121, 242, 249, 239, 195, 155, 43, 86, 172, 69, 138, 9,
+  18, 36, 72, 144, 61, 122, 244, 245, 247, 243, 251, 235, 203, 139, 11, 22,
+  44, 88, 176, 125, 250, 233, 207, 131, 27, 54, 108, 216, 173, 71, 142, 1
+]
+
+let gf_log = [
+  0, 0, 1, 25, 2, 50, 26, 198, 3, 223, 51, 238, 27, 104, 199, 75,
+  4, 100, 224, 14, 52, 141, 239, 129, 28, 193, 105, 248, 200, 8, 76, 113,
+  5, 138, 101, 47, 225, 36, 15, 33, 53, 147, 142, 218, 240, 18, 130, 69,
+  29, 181, 194, 125, 106, 39, 249, 185, 201, 154, 9, 120, 77, 228, 114, 166,
+  6, 191, 139, 98, 102, 221, 48, 253, 226, 152, 37, 179, 16, 145, 34, 136,
+  54, 208, 148, 206, 143, 150, 219, 189, 241, 210, 19, 92, 131, 56, 70, 64,
+  30, 66, 182, 163, 195, 72, 126, 110, 107, 58, 40, 84, 250, 133, 186, 61,
+  202, 94, 155, 159, 10, 21, 121, 43, 78, 212, 229, 172, 115, 243, 167, 87,
+  7, 112, 192, 247, 140, 128, 99, 13, 103, 74, 222, 237, 49, 197, 254, 24,
+  227, 165, 153, 119, 38, 184, 180, 124, 17, 68, 146, 217, 35, 32, 137, 46,
+  55, 63, 209, 91, 149, 188, 207, 205, 144, 135, 151, 178, 220, 252, 190, 97,
+  242, 86, 211, 171, 20, 42, 93, 158, 132, 60, 57, 83, 71, 109, 65, 162,
+  31, 45, 67, 216, 183, 123, 164, 118, 196, 23, 73, 236, 127, 12, 111, 246,
+  108, 161, 59, 82, 41, 157, 85, 170, 251, 96, 134, 177, 187, 204, 62, 90,
+  203, 89, 95, 176, 156, 169, 160, 81, 11, 245, 22, 235, 122, 117, 44, 215,
+  79, 174, 213, 233, 230, 231, 173, 232, 116, 214, 244, 234, 168, 80, 88, 175
+]
+
+// Galois field multiplication
+pub fn gf_mul(a : Int, b : Int) -> Int {
+  if a == 0 || b == 0 || a >= 256 || b >= 256 || a < 0 || b < 0 {
+    0
+  } else {
+    let log_sum = (gf_log[a] + gf_log[b]) % 255
+    gf_exp[log_sum]
+  }
+}
+
+// Galois field division
+pub fn gf_div(a : Int, b : Int) -> Int {
+  if a == 0 || a >= 256 || a < 0 {
+    0
+  } else if b == 0 || b >= 256 || b < 0 {
+    abort("Division by zero or invalid value in GF")
+  } else {
+    let log_diff = (gf_log[a] - gf_log[b] + 255) % 255
+    gf_exp[log_diff]
+  }
+}
+
+// Generate Reed-Solomon generator polynomial
+fn rs_generator_poly(nsym : Int) -> Array[Int] {
+  let mut g = [1]
+  for i = 0; i < nsym; i = i + 1 {
+    let new_g = Array::make(g.length() + 1, 0)
+    for j = 0; j < g.length(); j = j + 1 {
+      let exp_val = if i < gf_exp.length() { gf_exp[i] } else { 1 }
+      new_g[j] = new_g[j] ^ gf_mul(g[j], exp_val)
+      if j + 1 < new_g.length() {
+        new_g[j + 1] = new_g[j + 1] ^ g[j]
+      }
+    }
+    g = new_g
+  }
+  g
+}
+
+// Reed-Solomon encoding
+fn rs_encode(data : Array[Int], nsym : Int) -> Array[Int] {
+  let gen = rs_generator_poly(nsym)
+  let result = Array::make(data.length() + nsym, 0)
+  
+  // Copy data to result
+  for i = 0; i < data.length(); i = i + 1 {
+    result[i] = data[i]
+  }
+  
+  // Perform polynomial division
+  for i = 0; i < data.length(); i = i + 1 {
+    let coef = result[i]
+    if coef != 0 {
+      for j = 1; j < gen.length(); j = j + 1 {
+        if i + j < result.length() {
+          result[i + j] = result[i + j] ^ gf_mul(gen[j], coef)
+        }
+      }
+    }
+  }
+  
+  result
+}
+
+// Get error correction codewords count for each level and version
+pub fn get_error_correction_codewords(version : Version, ec_level : ErrorCorrectionLevel) -> Int {
+  // Simplified table for version 1 only
+  let _ = version  // Suppress unused warning
+  match ec_level {
+    ErrorCorrectionLevel::L => 7   // 7 error correction codewords
+    ErrorCorrectionLevel::M => 10  // 10 error correction codewords  
+    ErrorCorrectionLevel::Q => 13  // 13 error correction codewords
+    ErrorCorrectionLevel::H => 17  // 17 error correction codewords
+  }
+}
+
+// Get total data capacity for version and error correction level
+fn get_data_capacity(version : Version, ec_level : ErrorCorrectionLevel) -> Int {
+  // Total capacity for version 1 is 26 bytes
+  let total_capacity = 26
+  let ec_codewords = get_error_correction_codewords(version, ec_level)
+  total_capacity - ec_codewords
+}
+
+// Convert data to codewords with proper formatting
+fn format_data_codewords(data : Array[Int], mode : Mode, data_length : Int, capacity : Int) -> Array[Int] {
+  let mut codewords = []
+  
+  // Add mode indicator (4 bits)
+  let mode_indicator = match mode {
+    Mode::Numeric => 1
+    Mode::Alphanumeric => 2  
+    Mode::Byte => 4
+    Mode::Kanji => 8
+  }
+  codewords = codewords + [mode_indicator << 4]
+  
+  // Add character count indicator (simplified for version 1)
+  let _count_bits = match mode {
+    Mode::Numeric => 10
+    Mode::Alphanumeric => 9
+    Mode::Byte => 8
+    Mode::Kanji => 8
+  }
+  
+  // For simplicity, pack data length into next codeword
+  if codewords.length() > 0 {
+    codewords[0] = codewords[0] | ((data_length >> 4) & 0x0F)
+  }
+  codewords = codewords + [(data_length << 4) & 0xF0]
+  
+  // Add data codewords
+  codewords = codewords + data
+  
+  // Add terminator (0000) if space allows
+  if codewords.length() < capacity {
+    codewords = codewords + [0]
+  }
+  
+  // Pad to required capacity with alternating pad bytes
+  let mut pad_byte = 0xEC
+  while codewords.length() < capacity {
+    codewords = codewords + [pad_byte]
+    pad_byte = if pad_byte == 0xEC { 0x11 } else { 0xEC }
+  }
+  
+  codewords
+}
+
+// Apply Reed-Solomon error correction to data
+pub fn apply_error_correction(data : Array[Int], mode : Mode, version : Version, ec_level : ErrorCorrectionLevel) -> Array[Int] {
+  let capacity = get_data_capacity(version, ec_level)
+  let ec_codewords = get_error_correction_codewords(version, ec_level)
+  
+  // Format data into proper codewords
+  let formatted_data = format_data_codewords(data, mode, data.length(), capacity)
+  
+  // Apply Reed-Solomon encoding
+  let encoded = rs_encode(formatted_data, ec_codewords)
+  
+  encoded
+}
+
+// Helper functions for tests to create enum values
+pub fn make_byte_mode() -> Mode { Mode::Byte }
+pub fn make_ec_level_l() -> ErrorCorrectionLevel { ErrorCorrectionLevel::L }
+pub fn make_ec_level_m() -> ErrorCorrectionLevel { ErrorCorrectionLevel::M }
+pub fn make_ec_level_q() -> ErrorCorrectionLevel { ErrorCorrectionLevel::Q }
+pub fn make_ec_level_h() -> ErrorCorrectionLevel { ErrorCorrectionLevel::H }
