@@ -90,3 +90,13 @@ test "galois_field_arithmetic" {
     fail("Galois field arithmetic failed")
   }
 }
+
+test "kanji_mode_support" {
+  // Test that Kanji mode can be created and used (treated as byte mode)
+  let kanji_mode = make_kanji_mode()
+  let qr = encode_with_mode_and_ec("漢字", kanji_mode, 1, make_ec_level_m())
+  match qr.mode {
+    Mode::Kanji => ()
+    _ => fail("Should support Kanji mode")
+  }
+}

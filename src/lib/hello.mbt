@@ -108,12 +108,7 @@ pub fn detect_mode(data : String) -> Mode {
   }
 }
 
-// Alphanumeric character values for encoding
-let alphanumeric_values = [
-  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, // A-P
-  26, 27, 28, 29, 30, 31, 32, 33, 34, 35, // Q-Z
-  36, 37, 38, 39, 40, 41, 42, 43, 44 // space, $, %, *, +, -, ., /, :
-]
+// Note: Alphanumeric values are computed directly in get_alphanumeric_value function
 
 // Get alphanumeric value for character
 fn get_alphanumeric_value(c : Int) -> Int {
@@ -392,6 +387,28 @@ pub fn encode_with_ec(data : String, ec : ErrorCorrectionLevel) -> QRCode {
   generate_qr(data, ec)
 }
 
+// Generate QR code with specific mode and error correction level
+pub fn encode_with_mode_and_ec(data : String, mode : Mode, version : Version, ec : ErrorCorrectionLevel) -> QRCode {
+  let matrix = init_matrix(version)
+  let encoded_data = encode_data(data, mode)
+  
+  // Apply Reed-Solomon error correction
+  let corrected_data = apply_error_correction(encoded_data, mode, version, ec)
+  
+  // Convert corrected data to bits for placement
+  let mut bit_data = []
+  for codeword in corrected_data {
+    for bit = 7; bit >= 0; bit = bit - 1 {
+      bit_data = bit_data + [(codeword >> bit) & 1]
+    }
+  }
+  
+  // Place corrected data in matrix
+  place_data(matrix, bit_data)
+  
+  { version, error_correction: ec, mode, data, matrix }
+}
+
 // Reed-Solomon Error Correction Implementation
 
 // Galois Field arithmetic for GF(256)
@@ -578,6 +595,7 @@ pub fn apply_error_correction(data : Array[Int], mode : Mode, version : Version,
 
 // Helper functions for tests to create enum values
 pub fn make_byte_mode() -> Mode { Mode::Byte }
+pub fn make_kanji_mode() -> Mode { Mode::Kanji }
 pub fn make_ec_level_l() -> ErrorCorrectionLevel { ErrorCorrectionLevel::L }
 pub fn make_ec_level_m() -> ErrorCorrectionLevel { ErrorCorrectionLevel::M }
 pub fn make_ec_level_q() -> ErrorCorrectionLevel { ErrorCorrectionLevel::Q }
