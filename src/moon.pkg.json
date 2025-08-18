@@ -1,7 +1,3 @@
 {
-  "is-main": true,
-  "import": [
-    "bobzhang/qrc/lib",
-    "bobzhang/qrc/lib/render"
-  ]
+  "is-main": false
 }

@@ -1,6 +1,6 @@
 {
   "is-main": false,
   "import": [
-    "bobzhang/qrc/lib"
+    "bobzhang/qrc"
   ]
 }

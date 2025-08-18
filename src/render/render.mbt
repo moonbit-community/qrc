@@ -1,15 +1,15 @@
 // QR Code Renderers for different output formats
 
 // Render QR code as plain text (ASCII)
-pub fn to_text(qr : @lib.QRCode) -> String {
+pub fn to_text(qr : @bobzhang/qrc.QRCode) -> String {
   let mut result = ""
   let matrix = qr.matrix
   
   for y = 0; y < matrix.size; y = y + 1 {
     for x = 0; x < matrix.size; x = x + 1 {
-      match @lib.get_module(matrix, x, y) {
-        @lib.Module::Dark => result = result + "██"
-        @lib.Module::Light => result = result + "  "
+      match @bobzhang/qrc.get_module(matrix, x, y) {
+        @bobzhang/qrc.Module::Dark => result = result + "██"
+        @bobzhang/qrc.Module::Light => result = result + "  "
       }
     }
     result = result + "\n"
@@ -19,15 +19,15 @@ pub fn to_text(qr : @lib.QRCode) -> String {
 }
 
 // Render QR code as ANSI terminal output (with colors)
-pub fn to_ansi(qr : @lib.QRCode) -> String {
+pub fn to_ansi(qr : @bobzhang/qrc.QRCode) -> String {
   let mut result = ""
   let matrix = qr.matrix
   
   for y = 0; y < matrix.size; y = y + 1 {
     for x = 0; x < matrix.size; x = x + 1 {
-      match @lib.get_module(matrix, x, y) {
-        @lib.Module::Dark => result = result + "\u001b[40m  \u001b[0m"  // Black background
-        @lib.Module::Light => result = result + "\u001b[47m  \u001b[0m" // White background
+      match @bobzhang/qrc.get_module(matrix, x, y) {
+        @bobzhang/qrc.Module::Dark => result = result + "\u001b[40m  \u001b[0m"  // Black background
+        @bobzhang/qrc.Module::Light => result = result + "\u001b[47m  \u001b[0m" // White background
       }
     }
     result = result + "\n"
@@ -37,7 +37,7 @@ pub fn to_ansi(qr : @lib.QRCode) -> String {
 }
 
 // Render QR code as SVG
-pub fn to_svg(qr : @lib.QRCode) -> String {
+pub fn to_svg(qr : @bobzhang/qrc.QRCode) -> String {
   let matrix = qr.matrix
   let size = matrix.size
   let scale = 10  // Each module is 10x10 pixels
@@ -56,8 +56,8 @@ pub fn to_svg(qr : @lib.QRCode) -> String {
   // Draw dark modules
   for y = 0; y < size; y = y + 1 {
     for x = 0; x < size; x = x + 1 {
-      match @lib.get_module(matrix, x, y) {
-        @lib.Module::Dark => {
+      match @bobzhang/qrc.get_module(matrix, x, y) {
+        @bobzhang/qrc.Module::Dark => {
           let px = x * scale
           let py = y * scale
           result = result + "<rect x=\"" + px.to_string() + "\" "
@@ -65,7 +65,7 @@ pub fn to_svg(qr : @lib.QRCode) -> String {
           result = result + "width=\"" + scale.to_string() + "\" "
           result = result + "height=\"" + scale.to_string() + "\" fill=\"black\"/>\n"
         }
-        @lib.Module::Light => ()
+        @bobzhang/qrc.Module::Light => ()
       }
     }
   }
@@ -75,22 +75,22 @@ pub fn to_svg(qr : @lib.QRCode) -> String {
 }
 
 // Render QR code as compact text (using Unicode block characters)
-pub fn to_compact_text(qr : @lib.QRCode) -> String {
+pub fn to_compact_text(qr : @bobzhang/qrc.QRCode) -> String {
   let mut result = ""
   let matrix = qr.matrix
   
   // Process two rows at a time to use half-block characters
   for y = 0; y < matrix.size; y = y + 2 {
     for x = 0; x < matrix.size; x = x + 1 {
-      let top = match @lib.get_module(matrix, x, y) {
-        @lib.Module::Dark => true
-        @lib.Module::Light => false
+      let top = match @bobzhang/qrc.get_module(matrix, x, y) {
+        @bobzhang/qrc.Module::Dark => true
+        @bobzhang/qrc.Module::Light => false
       }
       
       let bottom = if y + 1 < matrix.size {
-        match @lib.get_module(matrix, x, y + 1) {
-          @lib.Module::Dark => true
-          @lib.Module::Light => false
+        match @bobzhang/qrc.get_module(matrix, x, y + 1) {
+          @bobzhang/qrc.Module::Dark => true
+          @bobzhang/qrc.Module::Light => false
         }
       } else {
         false
@@ -113,19 +113,19 @@ pub fn to_compact_text(qr : @lib.QRCode) -> String {
 }
 
 // Get QR code information as string
-pub fn info(qr : @lib.QRCode) -> String {
+pub fn info(qr : @bobzhang/qrc.QRCode) -> String {
   let mode_str = match qr.mode {
-    @lib.Mode::Numeric => "Numeric"
-    @lib.Mode::Alphanumeric => "Alphanumeric"
-    @lib.Mode::Byte => "Byte"
-    @lib.Mode::Kanji => "Kanji"
+    @bobzhang/qrc.Mode::Numeric => "Numeric"
+    @bobzhang/qrc.Mode::Alphanumeric => "Alphanumeric"
+    @bobzhang/qrc.Mode::Byte => "Byte"
+    @bobzhang/qrc.Mode::Kanji => "Kanji"
   }
   
   let ec_str = match qr.error_correction {
-    @lib.ErrorCorrectionLevel::L => "L (~7%)"
-    @lib.ErrorCorrectionLevel::M => "M (~15%)"
-    @lib.ErrorCorrectionLevel::Q => "Q (~25%)"
-    @lib.ErrorCorrectionLevel::H => "H (~30%)"
+    @bobzhang/qrc.ErrorCorrectionLevel::L => "L (~7%)"
+    @bobzhang/qrc.ErrorCorrectionLevel::M => "M (~15%)"
+    @bobzhang/qrc.ErrorCorrectionLevel::Q => "Q (~25%)"
+    @bobzhang/qrc.ErrorCorrectionLevel::H => "H (~30%)"
   }
   
   "QR Code Information:\n" +

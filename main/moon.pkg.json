@@ -1,0 +1,7 @@
+{
+  "is-main": true,
+  "import": [
+    "bobzhang/qrc",
+    "bobzhang/qrc/render"
+  ]
+}
