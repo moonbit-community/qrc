@@ -1,3 +1,4 @@
+///|
 test "qr_encode_numeric" {
   let qr = encode("12345")
   if qr.data != "12345" {
@@ -9,6 +10,7 @@ test "qr_encode_numeric" {
   }
 }
 
+///|
 test "qr_encode_alphanumeric" {
   let qr = encode("HELLO WORLD")
   if qr.data != "HELLO WORLD" {
@@ -20,6 +22,7 @@ test "qr_encode_alphanumeric" {
   }
 }
 
+///|
 test "qr_encode_byte" {
   let qr = encode("Hello, World!")
   if qr.data != "Hello, World!" {
@@ -31,14 +34,16 @@ test "qr_encode_byte" {
   }
 }
 
+///|
 test "qr_matrix_size" {
   let qr = encode("TEST")
-  let expected_size = version_to_size(1)  // Version 1 = 21x21
+  let expected_size = version_to_size(1) // Version 1 = 21x21
   if qr.matrix.size != expected_size {
     fail("QR matrix size should be " + expected_size.to_string())
   }
 }
 
+///|
 test "detect_mode_numeric" {
   let mode = detect_mode("123456789")
   match mode {
@@ -47,6 +52,7 @@ test "detect_mode_numeric" {
   }
 }
 
+///|
 test "detect_mode_alphanumeric" {
   let mode = detect_mode("ABC123 $%*+-./:")
   match mode {
@@ -55,6 +61,7 @@ test "detect_mode_alphanumeric" {
   }
 }
 
+///|
 test "detect_mode_byte" {
   let mode = detect_mode("Hello, World!")
   match mode {
@@ -63,25 +70,32 @@ test "detect_mode_byte" {
   }
 }
 
+///|
 test "reed_solomon_basic" {
   let data = [1, 2, 3, 4]
-  let corrected = apply_error_correction(data, make_byte_mode(), 1, make_ec_level_m())
+  let corrected = apply_error_correction(
+    data,
+    make_byte_mode(),
+    1,
+    make_ec_level_m(),
+  )
   if corrected.length() <= data.length() {
     fail("Error correction should add redundancy")
   }
 }
 
+///|
 test "error_correction_levels" {
   let ec_l = get_error_correction_codewords(1, make_ec_level_l())
   let ec_m = get_error_correction_codewords(1, make_ec_level_m())
   let ec_q = get_error_correction_codewords(1, make_ec_level_q())
   let ec_h = get_error_correction_codewords(1, make_ec_level_h())
-  
   if not(ec_l < ec_m && ec_m < ec_q && ec_q < ec_h) {
     fail("Error correction levels should be in ascending order")
   }
 }
 
+///|
 test "galois_field_arithmetic" {
   // Test basic GF operations
   let a = gf_mul(2, 3)
@@ -91,6 +105,7 @@ test "galois_field_arithmetic" {
   }
 }
 
+///|
 test "kanji_mode_support" {
   // Test that Kanji mode can be created and used (treated as byte mode)
   let kanji_mode = make_kanji_mode()
