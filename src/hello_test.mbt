@@ -115,3 +115,23 @@ test "kanji_mode_support" {
     _ => fail("Should support Kanji mode")
   }
 }
+
+test "mask_pattern_generation" {
+  // Test that mask patterns can be created and applied
+  let qr = generate_qr_with_mask("TEST", make_ec_level_m())
+  if qr.matrix.size != 21 {
+    fail("QR matrix size should be 21x21 for version 1")
+  }
+  if qr.data != "TEST" {
+    fail("QR data should be preserved")
+  }
+}
+
+test "mask_penalty_evaluation" {
+  // Test mask penalty scoring
+  let matrix = new_matrix(21)
+  let penalty = evaluate_mask_penalty(matrix)
+  if penalty < 0 {
+    fail("Penalty should be non-negative")
+  }
+}

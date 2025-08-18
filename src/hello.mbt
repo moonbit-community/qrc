@@ -717,3 +717,240 @@ pub fn make_ec_level_q() -> ErrorCorrectionLevel {
 pub fn make_ec_level_h() -> ErrorCorrectionLevel {
   ErrorCorrectionLevel::H
 }
+
+// QR Code Masking Patterns (8 standard patterns)
+pub enum MaskPattern {
+  Pattern0  // (i + j) % 2 == 0
+  Pattern1  // i % 2 == 0
+  Pattern2  // j % 3 == 0
+  Pattern3  // (i + j) % 3 == 0
+  Pattern4  // (i / 2 + j / 3) % 2 == 0
+  Pattern5  // (i * j) % 2 + (i * j) % 3 == 0
+  Pattern6  // ((i * j) % 2 + (i * j) % 3) % 2 == 0
+  Pattern7  // ((i + j) % 2 + (i * j) % 3) % 2 == 0
+} derive(Eq)
+
+// Apply mask pattern to QR matrix
+pub fn apply_mask(matrix : Matrix, pattern : MaskPattern) -> Unit {
+  for i = 0; i < matrix.size; i = i + 1 {
+    for j = 0; j < matrix.size; j = j + 1 {
+      if is_data_position(matrix, j, i) {
+        let should_mask = match pattern {
+          MaskPattern::Pattern0 => (i + j) % 2 == 0
+          MaskPattern::Pattern1 => i % 2 == 0
+          MaskPattern::Pattern2 => j % 3 == 0
+          MaskPattern::Pattern3 => (i + j) % 3 == 0
+          MaskPattern::Pattern4 => (i / 2 + j / 3) % 2 == 0
+          MaskPattern::Pattern5 => (i * j) % 2 + (i * j) % 3 == 0
+          MaskPattern::Pattern6 => ((i * j) % 2 + (i * j) % 3) % 2 == 0
+          MaskPattern::Pattern7 => ((i + j) % 2 + (i * j) % 3) % 2 == 0
+        }
+        
+        if should_mask {
+          let current = get_module(matrix, j, i)
+          let flipped = match current {
+            Module::Dark => Module::Light
+            Module::Light => Module::Dark
+          }
+          set_module(matrix, j, i, flipped)
+        }
+      }
+    }
+  }
+}
+
+// Format Information encoding (15 bits: 5 data + 10 error correction)
+fn encode_format_info(ec_level : ErrorCorrectionLevel, mask_pattern : MaskPattern) -> Int {
+  let ec_bits = match ec_level {
+    ErrorCorrectionLevel::L => 1  // 01
+    ErrorCorrectionLevel::M => 0  // 00
+    ErrorCorrectionLevel::Q => 3  // 11
+    ErrorCorrectionLevel::H => 2  // 10
+  }
+  
+  let mask_bits = match mask_pattern {
+    MaskPattern::Pattern0 => 0
+    MaskPattern::Pattern1 => 1
+    MaskPattern::Pattern2 => 2
+    MaskPattern::Pattern3 => 3
+    MaskPattern::Pattern4 => 4
+    MaskPattern::Pattern5 => 5
+    MaskPattern::Pattern6 => 6
+    MaskPattern::Pattern7 => 7
+  }
+  
+  let data_bits = (ec_bits << 3) | mask_bits
+  
+  // BCH error correction for format info (simplified)
+  let generator = 0x537  // BCH(15,5) generator polynomial
+  let mut format_bits = data_bits << 10
+  
+  for i = 0; i < 5; i = i + 1 {
+    if ((format_bits >> 14) & 1) == 1 {
+      format_bits = format_bits ^ generator
+    }
+    format_bits = format_bits << 1
+  }
+  
+  let format_info = (data_bits << 10) | (format_bits >> 5)
+  format_info ^ 0x5412  // XOR mask for format info
+}
+
+// Place format information in QR matrix
+fn place_format_info(matrix : Matrix, format_info : Int) -> Unit {
+  // Place format info around top-left finder pattern
+  for i = 0; i < 6; i = i + 1 {
+    let bit = (format_info >> i) & 1
+    let mod = if bit == 1 { Module::Dark } else { Module::Light }
+    set_module(matrix, 8, i, mod)
+  }
+  
+  let bit6 = (format_info >> 6) & 1
+  let mod6 = if bit6 == 1 { Module::Dark } else { Module::Light }
+  set_module(matrix, 8, 7, mod6)
+  set_module(matrix, 8, 8, mod6)
+  set_module(matrix, 7, 8, mod6)
+  
+  for i = 9; i < 15; i = i + 1 {
+    let bit = (format_info >> (14 - i)) & 1
+    let mod = if bit == 1 { Module::Dark } else { Module::Light }
+    set_module(matrix, 14 - i, 8, mod)
+  }
+  
+  // Place format info around other finder patterns
+  let size = matrix.size
+  for i = 0; i < 8; i = i + 1 {
+    let bit = (format_info >> i) & 1
+    let mod = if bit == 1 { Module::Dark } else { Module::Light }
+    set_module(matrix, size - 1 - i, 8, mod)
+  }
+  
+  for i = 8; i < 15; i = i + 1 {
+    let bit = (format_info >> i) & 1
+    let mod = if bit == 1 { Module::Dark } else { Module::Light }
+    set_module(matrix, 8, size - 15 + i, mod)
+  }
+}
+
+// Evaluate mask pattern quality (penalty scoring)
+pub fn evaluate_mask_penalty(matrix : Matrix) -> Int {
+  let mut penalty = 0
+  let size = matrix.size
+  
+  // Rule 1: Adjacent modules in row/column with same color
+  for i = 0; i < size; i = i + 1 {
+    let mut row_count = 1
+    let mut col_count = 1
+    
+    for j = 1; j < size; j = j + 1 {
+      // Check row
+      if get_module(matrix, j, i) == get_module(matrix, j - 1, i) {
+        row_count = row_count + 1
+      } else {
+        if row_count >= 5 {
+          penalty = penalty + (row_count - 2)
+        }
+        row_count = 1
+      }
+      
+      // Check column
+      if get_module(matrix, i, j) == get_module(matrix, i, j - 1) {
+        col_count = col_count + 1
+      } else {
+        if col_count >= 5 {
+          penalty = penalty + (col_count - 2)
+        }
+        col_count = 1
+      }
+    }
+    
+    if row_count >= 5 {
+      penalty = penalty + (row_count - 2)
+    }
+    if col_count >= 5 {
+      penalty = penalty + (col_count - 2)
+    }
+  }
+  
+  // Rule 2: Block of modules in same color (2x2)
+  for i = 0; i < size - 1; i = i + 1 {
+    for j = 0; j < size - 1; j = j + 1 {
+      let mod = get_module(matrix, j, i)
+      if get_module(matrix, j + 1, i) == mod &&
+         get_module(matrix, j, i + 1) == mod &&
+         get_module(matrix, j + 1, i + 1) == mod {
+        penalty = penalty + 3
+      }
+    }
+  }
+  
+  penalty
+}
+
+// Choose best mask pattern
+pub fn choose_best_mask(matrix : Matrix, ec_level : ErrorCorrectionLevel) -> MaskPattern {
+  let mut best_pattern = MaskPattern::Pattern0
+  let mut best_penalty = 999999
+  
+  let patterns = [
+    MaskPattern::Pattern0, MaskPattern::Pattern1, MaskPattern::Pattern2, MaskPattern::Pattern3,
+    MaskPattern::Pattern4, MaskPattern::Pattern5, MaskPattern::Pattern6, MaskPattern::Pattern7
+  ]
+  
+  for pattern in patterns {
+    // Create a copy of the matrix to test
+    let test_matrix = new_matrix(matrix.size)
+    for i = 0; i < matrix.size; i = i + 1 {
+      for j = 0; j < matrix.size; j = j + 1 {
+        set_module(test_matrix, j, i, get_module(matrix, j, i))
+      }
+    }
+    
+    apply_mask(test_matrix, pattern)
+    let format_info = encode_format_info(ec_level, pattern)
+    place_format_info(test_matrix, format_info)
+    
+    let penalty = evaluate_mask_penalty(test_matrix)
+    if penalty < best_penalty {
+      best_penalty = penalty
+      best_pattern = pattern
+    }
+  }
+  
+  best_pattern
+}
+
+// Enhanced QR code generation with masking
+pub fn generate_qr_with_mask(data : String, error_correction : ErrorCorrectionLevel) -> QRCode {
+  let mode = detect_mode(data)
+  let version = 1  // Start with version 1 for simplicity
+  let matrix = init_matrix(version)
+  let encoded_data = encode_data(data, mode)
+  
+  // Apply Reed-Solomon error correction
+  let corrected_data = apply_error_correction(encoded_data, mode, version, error_correction)
+  
+  // Convert corrected data to bits for placement
+  let mut bit_data = []
+  for codeword in corrected_data {
+    for bit = 7; bit >= 0; bit = bit - 1 {
+      bit_data = bit_data + [(codeword >> bit) & 1]
+    }
+  }
+  
+  // Place corrected data in matrix
+  place_data(matrix, bit_data)
+  
+  // Choose and apply best mask pattern
+  let best_mask = choose_best_mask(matrix, error_correction)
+  apply_mask(matrix, best_mask)
+  
+  // Place format information
+  let format_info = encode_format_info(error_correction, best_mask)
+  place_format_info(matrix, format_info)
+  
+  { version, error_correction, mode, data, matrix }
+}
+
+// Helper function to create mask patterns for tests
+pub fn make_mask_pattern_0() -> MaskPattern { MaskPattern::Pattern0 }

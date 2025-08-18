@@ -4,6 +4,10 @@ package "bobzhang/qrc"
 // Values
 fn apply_error_correction(Array[Int], Mode, Int, ErrorCorrectionLevel) -> Array[Int]
 
+fn apply_mask(Matrix, MaskPattern) -> Unit
+
+fn choose_best_mask(Matrix, ErrorCorrectionLevel) -> MaskPattern
+
 fn detect_mode(String) -> Mode
 
 fn encode(String) -> QRCode
@@ -20,7 +24,11 @@ fn encode_with_ec(String, ErrorCorrectionLevel) -> QRCode
 
 fn encode_with_mode_and_ec(String, Mode, Int, ErrorCorrectionLevel) -> QRCode
 
+fn evaluate_mask_penalty(Matrix) -> Int
+
 fn generate_qr(String, ErrorCorrectionLevel) -> QRCode
+
+fn generate_qr_with_mask(String, ErrorCorrectionLevel) -> QRCode
 
 fn get_error_correction_codewords(Int, ErrorCorrectionLevel) -> Int
 
@@ -44,6 +52,8 @@ fn make_ec_level_q() -> ErrorCorrectionLevel
 
 fn make_kanji_mode() -> Mode
 
+fn make_mask_pattern_0() -> MaskPattern
+
 fn new_matrix(Int) -> Matrix
 
 fn set_module(Matrix, Int, Int, Module) -> Unit
@@ -60,6 +70,18 @@ pub enum ErrorCorrectionLevel {
   H
 }
 impl Eq for ErrorCorrectionLevel
+
+pub enum MaskPattern {
+  Pattern0
+  Pattern1
+  Pattern2
+  Pattern3
+  Pattern4
+  Pattern5
+  Pattern6
+  Pattern7
+}
+impl Eq for MaskPattern
 
 pub struct Matrix {
   size : Int
