@@ -1,6 +1,6 @@
 // Example usage of the QR code library
 
-fn main() {
+fn main {
   // Generate a QR code
   let qr = @bobzhang/qrc.encode("Hello, MoonBit!")
   
