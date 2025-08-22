@@ -116,6 +116,7 @@ test "kanji_mode_support" {
   }
 }
 
+///|
 test "mask_pattern_generation" {
   // Test that mask patterns can be created and applied
   let qr = generate_qr_with_mask("TEST", make_ec_level_m())
@@ -127,6 +128,7 @@ test "mask_pattern_generation" {
   }
 }
 
+///|
 test "mask_penalty_evaluation" {
   // Test mask penalty scoring
   let matrix = new_matrix(21)

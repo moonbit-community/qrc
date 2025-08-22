@@ -1,6 +1,7 @@
 // QR Code Renderers for different output formats
 
 // Render QR code as plain text (ASCII)
+
 ///|
 pub fn to_text(qr : @bobzhang/qrc.QRCode) -> String {
   let mut result = ""
