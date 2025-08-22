@@ -1,7 +1,7 @@
 // QR Code Error Correction Levels
 
 ///|
-pub enum ErrorCorrectionLevel {
+pub(all) enum ErrorCorrectionLevel {
   L // ~7% correction
   M // ~15% correction
   Q // ~25% correction

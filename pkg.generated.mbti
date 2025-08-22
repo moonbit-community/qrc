@@ -63,7 +63,7 @@ fn version_to_size(Int) -> Int
 // Errors
 
 // Types and methods
-pub enum ErrorCorrectionLevel {
+pub(all) enum ErrorCorrectionLevel {
   L
   M
   Q
