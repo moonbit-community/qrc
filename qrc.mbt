@@ -396,6 +396,84 @@ fn place_dark_module(matrix : Matrix, version : Version) -> Unit {
   set_module(matrix, 8, 4 * version + 9, Module::Dark)
 }
 
+// Get alignment pattern positions for a given version
+///|
+pub fn get_alignment_positions(version : Version) -> Array[Int] {
+  match version {
+    1 => []
+    2 => [6, 18]
+    3 => [6, 22]
+    4 => [6, 26]
+    5 => [6, 30]
+    6 => [6, 34]
+    7 => [6, 22, 38]
+    8 => [6, 24, 42]
+    9 => [6, 26, 46]
+    10 => [6, 28, 50]
+    11 => [6, 30, 54]
+    12 => [6, 32, 58]
+    13 => [6, 34, 62]
+    14 => [6, 26, 46, 66]
+    15 => [6, 26, 48, 70]
+    16 => [6, 26, 50, 74]
+    17 => [6, 30, 54, 78]
+    18 => [6, 30, 56, 82]
+    19 => [6, 30, 58, 86]
+    20 => [6, 34, 62, 90]
+    _ => [6, 30, 54, 78] // Default pattern for higher versions
+  }
+}
+
+// Place alignment pattern (5x5 pattern)
+///|
+fn place_alignment_pattern(matrix : Matrix, x : Int, y : Int) -> Unit {
+  let pattern = [
+    [true, true, true, true, true],
+    [true, false, false, false, true],
+    [true, false, true, false, true],
+    [true, false, false, false, true],
+    [true, true, true, true, true],
+  ]
+  
+  for i = 0; i < 5; i = i + 1 {
+    for j = 0; j < 5; j = j + 1 {
+      let mod = if pattern[i][j] { Module::Dark } else { Module::Light }
+      set_module(matrix, x - 2 + j, y - 2 + i, mod)
+    }
+  }
+}
+
+// Check if alignment pattern would conflict with finder patterns
+///|
+fn conflicts_with_finder_pattern(x : Int, y : Int, size : Int) -> Bool {
+  // Check distance from finder patterns (top-left, top-right, bottom-left)
+  let distance_tl = (x * x + y * y)
+  let distance_tr = ((x - (size - 1)) * (x - (size - 1)) + y * y)
+  let distance_bl = (x * x + (y - (size - 1)) * (y - (size - 1)))
+  
+  // If too close to any finder pattern (within 7 modules), it conflicts
+  distance_tl < 49 || distance_tr < 49 || distance_bl < 49
+}
+
+// Place all alignment patterns for the version
+///|
+fn place_alignment_patterns(matrix : Matrix, version : Version) -> Unit {
+  let positions = get_alignment_positions(version)
+  let size = matrix.size
+  
+  for i = 0; i < positions.length(); i = i + 1 {
+    for j = 0; j < positions.length(); j = j + 1 {
+      let x = positions[i]
+      let y = positions[j]
+      
+      // Don't place alignment pattern if it conflicts with finder patterns
+      if not(conflicts_with_finder_pattern(x, y, size)) {
+        place_alignment_pattern(matrix, x, y)
+      }
+    }
+  }
+}
+
 // Initialize QR matrix with patterns
 
 ///|
@@ -415,6 +493,9 @@ pub fn init_matrix(version : Version) -> Matrix {
 
   // Place timing patterns
   place_timing_patterns(matrix)
+
+  // Place alignment patterns (for versions 2+)
+  place_alignment_patterns(matrix, version)
 
   // Place dark module
   place_dark_module(matrix, version)
@@ -471,7 +552,27 @@ pub fn is_data_position(matrix : Matrix, x : Int, y : Int) -> Bool {
   } else if x == 8 && y >= size - 7 { // Dark module area
     false
   } else {
-    true
+    // Check alignment patterns
+    let version = (size - 17) / 4 // Calculate version from size
+    let positions = get_alignment_positions(version)
+    let mut is_alignment = false
+    
+    for i = 0; i < positions.length(); i = i + 1 {
+      for j = 0; j < positions.length(); j = j + 1 {
+        let ax = positions[i]
+        let ay = positions[j]
+        
+        // Skip if this would conflict with finder patterns
+        if not(conflicts_with_finder_pattern(ax, ay, size)) {
+          // Check if current position is within alignment pattern (5x5)
+          if x >= ax - 2 && x <= ax + 2 && y >= ay - 2 && y <= ay + 2 {
+            is_alignment = true
+          }
+        }
+      }
+    }
+    
+    not(is_alignment)
   }
 }
 
@@ -483,7 +584,7 @@ pub fn generate_qr(
   error_correction : ErrorCorrectionLevel,
 ) -> QRCode {
   let mode = detect_mode(data)
-  let version = 1 // Start with version 1 for simplicity
+  let version = find_minimum_version(data, mode, error_correction)
   let matrix = init_matrix(version)
   let encoded_data = encode_data(data, mode)
 
@@ -662,6 +763,56 @@ fn rs_encode(data : Array[Int], nsym : Int) -> Array[Int] {
   result
 }
 
+// Data capacity table for different QR versions and error correction levels
+// Returns total codewords for the version
+
+///|
+fn get_total_codewords(version : Version) -> Int {
+  match version {
+    1 => 26
+    2 => 44
+    3 => 70
+    4 => 100
+    5 => 134
+    6 => 172
+    7 => 196
+    8 => 242
+    9 => 292
+    10 => 346
+    11 => 404
+    12 => 466
+    13 => 532
+    14 => 581
+    15 => 655
+    16 => 733
+    17 => 815
+    18 => 901
+    19 => 991
+    20 => 1085
+    21 => 1156
+    22 => 1258
+    23 => 1364
+    24 => 1474
+    25 => 1588
+    26 => 1706
+    27 => 1828
+    28 => 1921
+    29 => 2051
+    30 => 2185
+    31 => 2323
+    32 => 2465
+    33 => 2611
+    34 => 2761
+    35 => 2876
+    36 => 3034
+    37 => 3196
+    38 => 3362
+    39 => 3532
+    40 => 3706
+    _ => 26 // Default to version 1
+  }
+}
+
 // Get error correction codewords count for each level and version
 
 ///|
@@ -669,24 +820,91 @@ pub fn get_error_correction_codewords(
   version : Version,
   ec_level : ErrorCorrectionLevel,
 ) -> Int {
-  // Simplified table for version 1 only
-  let _ = version // Suppress unused warning
-  match ec_level {
-    ErrorCorrectionLevel::L => 7 // 7 error correction codewords
-    ErrorCorrectionLevel::M => 10 // 10 error correction codewords  
-    ErrorCorrectionLevel::Q => 13 // 13 error correction codewords
-    ErrorCorrectionLevel::H => 17 // 17 error correction codewords
+  // Simplified table - in a full implementation, this would be a comprehensive lookup table
+  if version == 1 {
+    match ec_level {
+      ErrorCorrectionLevel::L => 7   // 7 error correction codewords
+      ErrorCorrectionLevel::M => 10  // 10 error correction codewords  
+      ErrorCorrectionLevel::Q => 13  // 13 error correction codewords
+      ErrorCorrectionLevel::H => 17  // 17 error correction codewords
+    }
+  } else {
+    // Approximate calculation for other versions
+    let total = get_total_codewords(version)
+    match ec_level {
+      ErrorCorrectionLevel::L => total * 7 / 100   // ~7%
+      ErrorCorrectionLevel::M => total * 15 / 100  // ~15%
+      ErrorCorrectionLevel::Q => total * 25 / 100  // ~25%
+      ErrorCorrectionLevel::H => total * 30 / 100  // ~30%
+    }
   }
 }
 
 // Get total data capacity for version and error correction level
 
 ///|
-fn get_data_capacity(version : Version, ec_level : ErrorCorrectionLevel) -> Int {
-  // Total capacity for version 1 is 26 bytes
-  let total_capacity = 26
+pub fn get_data_capacity(version : Version, ec_level : ErrorCorrectionLevel) -> Int {
+  let total_capacity = get_total_codewords(version)
   let ec_codewords = get_error_correction_codewords(version, ec_level)
   total_capacity - ec_codewords
+}
+
+// Calculate required data length including mode indicator and character count
+///|
+fn calculate_required_length(data : String, mode : Mode, version : Version) -> Int {
+  let data_length = data.length()
+  
+  // Mode indicator: 4 bits
+  let mode_bits = 4
+  
+  // Character count indicator bits (depends on version and mode)
+  let count_bits = if version <= 9 {
+    match mode {
+      Mode::Numeric => 10
+      Mode::Alphanumeric => 9
+      Mode::Byte => 8
+      Mode::Kanji => 8
+    }
+  } else if version <= 26 {
+    match mode {
+      Mode::Numeric => 12
+      Mode::Alphanumeric => 11
+      Mode::Byte => 16
+      Mode::Kanji => 10
+    }
+  } else {
+    match mode {
+      Mode::Numeric => 14
+      Mode::Alphanumeric => 13
+      Mode::Byte => 16
+      Mode::Kanji => 12
+    }
+  }
+  
+  // Data bits (approximate)
+  let data_bits = match mode {
+    Mode::Numeric => (data_length * 10 + 2) / 3  // ~3.33 bits per digit
+    Mode::Alphanumeric => (data_length * 11 + 1) / 2  // ~5.5 bits per char
+    Mode::Byte => data_length * 8  // 8 bits per byte
+    Mode::Kanji => data_length * 13  // 13 bits per Kanji
+  }
+  
+  // Total bits needed, converted to bytes (rounded up)
+  (mode_bits + count_bits + data_bits + 7) / 8
+}
+
+// Find the minimum QR version that can hold the data
+///|
+pub fn find_minimum_version(data : String, mode : Mode, ec_level : ErrorCorrectionLevel) -> Version {
+  for version = 1; version <= 40; version = version + 1 {
+    let capacity = get_data_capacity(version, ec_level)
+    let required = calculate_required_length(data, mode, version)
+    if capacity >= required {
+      return version
+    }
+  }
+  
+  40 // Return maximum version if data is too large
 }
 
 // Convert data to codewords with proper formatting
@@ -879,6 +1097,60 @@ fn encode_format_info(
   format_info ^ 0x5412 // XOR mask for format info
 }
 
+// Version Information encoding (18 bits: 6 data + 12 error correction)
+// Required for QR versions 7 and above
+
+///|
+pub fn encode_version_info(version : Version) -> Int {
+  if version < 7 {
+    0 // No version info needed for versions 1-6
+  } else {
+    // Version information with BCH error correction
+    let version_data = version // 6 bits for version (7-40)
+    
+    // BCH(18,6) generator polynomial for version info
+    let generator = 0x1F25 // BCH generator polynomial
+    let mut version_bits = version_data << 12
+    
+    for i = 0; i < 6; i = i + 1 {
+      if ((version_bits >> 17) & 1) == 1 {
+        version_bits = version_bits ^ generator
+      }
+      version_bits = version_bits << 1
+    }
+    
+    (version_data << 12) | (version_bits >> 6)
+  }
+}
+
+// Place version information in QR matrix (for versions 7+)
+
+///|
+fn place_version_info(matrix : Matrix, version : Version) -> Unit {
+  if version >= 7 {
+    let version_info = encode_version_info(version)
+    let size = matrix.size
+    
+    // Place version info in bottom-left corner
+    for i = 0; i < 6; i = i + 1 {
+      for j = 0; j < 3; j = j + 1 {
+        let bit = (version_info >> (i * 3 + j)) & 1
+        let mod = if bit == 1 { Module::Dark } else { Module::Light }
+        set_module(matrix, i, size - 11 + j, mod)
+      }
+    }
+    
+    // Place version info in top-right corner (transposed)
+    for i = 0; i < 6; i = i + 1 {
+      for j = 0; j < 3; j = j + 1 {
+        let bit = (version_info >> (i * 3 + j)) & 1
+        let mod = if bit == 1 { Module::Dark } else { Module::Light }
+        set_module(matrix, size - 11 + j, i, mod)
+      }
+    }
+  }
+}
+
 // Place format information in QR matrix
 
 ///|
@@ -1015,7 +1287,7 @@ pub fn generate_qr_with_mask(
   error_correction : ErrorCorrectionLevel,
 ) -> QRCode {
   let mode = detect_mode(data)
-  let version = 1 // Start with version 1 for simplicity
+  let version = find_minimum_version(data, mode, error_correction)
   let matrix = init_matrix(version)
   let encoded_data = encode_data(data, mode)
 
@@ -1042,6 +1314,10 @@ pub fn generate_qr_with_mask(
   // Place format information
   let format_info = encode_format_info(error_correction, best_mask)
   place_format_info(matrix, format_info)
+  
+  // Place version information (for versions 7+)
+  place_version_info(matrix, version)
+  
   { version, error_correction, mode, data, matrix }
 }
 

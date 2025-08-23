@@ -279,3 +279,82 @@ test "qr_with_masking_structure" {
     fail("Finder pattern structure should be preserved after masking")
   }
 }
+
+///|
+test "version_selection" {
+  // Test automatic version selection
+  let short_data = "Hi"
+  let long_data = "This is a much longer string that should require a higher QR version to encode properly with all the data"
+  
+  let qr1 = encode(short_data)
+  let qr2 = encode(long_data)
+  
+  // Short data should use version 1
+  if qr1.version != 1 {
+    fail("Short data should use version 1")
+  }
+  
+  // Long data should use a higher version
+  if qr2.version <= 1 {
+    fail("Long data should require version > 1")
+  }
+  
+  // Matrix size should match version
+  let expected_size1 = version_to_size(qr1.version)
+  let expected_size2 = version_to_size(qr2.version)
+  
+  if qr1.matrix.size != expected_size1 {
+    fail("QR1 matrix size should match version")
+  }
+  if qr2.matrix.size != expected_size2 {
+    fail("QR2 matrix size should match version")
+  }
+}
+
+///|
+test "version_info_encoding" {
+  // Test version information encoding for versions 7+
+  let version7_info = encode_version_info(7)
+  let version1_info = encode_version_info(1)
+  
+  if version1_info != 0 {
+    fail("Version 1 should not have version info")
+  }
+  
+  if version7_info == 0 {
+    fail("Version 7 should have version info")
+  }
+}
+
+///|
+test "alignment_patterns" {
+  // Test alignment pattern positions
+  let positions_v1 = get_alignment_positions(1)
+  let positions_v2 = get_alignment_positions(2)
+  
+  if positions_v1.length() != 0 {
+    fail("Version 1 should have no alignment patterns")
+  }
+  
+  if positions_v2.length() == 0 {
+    fail("Version 2 should have alignment patterns")
+  }
+}
+
+///|
+test "data_capacity_calculation" {
+  // Test data capacity calculation
+  let capacity_v1_l = get_data_capacity(1, make_ec_level_l())
+  let capacity_v1_h = get_data_capacity(1, make_ec_level_h())
+  let capacity_v2_m = get_data_capacity(2, make_ec_level_m())
+  
+  // Higher error correction should have less data capacity
+  if capacity_v1_l <= capacity_v1_h {
+    fail("Level L should have more capacity than Level H")
+  }
+  
+  // Higher version should have more capacity
+  if capacity_v2_m <= capacity_v1_l {
+    fail("Version 2 should have more capacity than Version 1")
+  }
+}
