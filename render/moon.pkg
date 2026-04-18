@@ -1,0 +1,7 @@
+import {
+  "bobzhang/qrc",
+}
+
+options(
+  "is-main": false,
+)

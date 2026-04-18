@@ -1,0 +1,8 @@
+import {
+  "bobzhang/qrc",
+  "bobzhang/qrc/render",
+}
+
+options(
+  "is-main": true,
+)
