@@ -21,7 +21,7 @@ pub enum Mode {
 // QR Code Version (1-40)
 
 ///|
-pub typealias Int as Version
+pub type Version = Int
 
 // QR Code Module (pixel) state
 
@@ -115,29 +115,22 @@ pub fn detect_mode(data : String) -> Mode {
   let mut has_kanji = false
   let mut kanji_count = 0
   let mut total_count = 0
-  
+
   for i = 0; i < data.length(); i = i + 1 {
-    match data.get(i) {
-      Some(c) => {
-        total_count = total_count + 1
-        if not(is_numeric(c)) {
-          all_numeric = false
-        }
-        if not(is_alphanumeric(c)) {
-          all_alphanumeric = false
-        }
-        if is_kanji_character(c) {
-          has_kanji = true
-          kanji_count = kanji_count + 1
-        }
-      }
-      None => {
-        all_numeric = false
-        all_alphanumeric = false
-      }
+    let c = data.code_unit_at(i).to_int()
+    total_count = total_count + 1
+    if !is_numeric(c) {
+      all_numeric = false
+    }
+    if !is_alphanumeric(c) {
+      all_alphanumeric = false
+    }
+    if is_kanji_character(c) {
+      has_kanji = true
+      kanji_count = kanji_count + 1
     }
   }
-  
+
   // Choose the best mode based on content
   if all_numeric {
     Mode::Numeric
@@ -188,16 +181,13 @@ pub fn encode_numeric(data : String) -> Array[Int] {
 
     // Process up to 3 digits at a time
     while count < 3 && i < data.length() {
-      match data.get(i) {
-        Some(c) =>
-          if c >= 48 && c <= 57 { // '0' to '9'
-            group = group * 10 + (c - 48)
-            count = count + 1
-            i = i + 1
-          } else {
-            break
-          }
-        None => break
+      let c = data.code_unit_at(i).to_int()
+      if c >= 48 && c <= 57 { // '0' to '9'
+        group = group * 10 + (c - 48)
+        count = count + 1
+        i = i + 1
+      } else {
+        break
       }
     }
 
@@ -225,19 +215,15 @@ pub fn encode_alphanumeric(data : String) -> Array[Int] {
 
     // Process up to 2 characters at a time
     while count < 2 && i < data.length() {
-      match data.get(i) {
-        Some(c) => {
-          let value = get_alphanumeric_value(c)
-          if count == 0 {
-            group = value * 45
-          } else {
-            group = group + value
-          }
-          count = count + 1
-          i = i + 1
-        }
-        None => break
+      let c = data.code_unit_at(i).to_int()
+      let value = get_alphanumeric_value(c)
+      if count == 0 {
+        group = value * 45
+      } else {
+        group = group + value
       }
+      count = count + 1
+      i = i + 1
     }
 
     // Add the encoded group
@@ -256,10 +242,8 @@ pub fn encode_alphanumeric(data : String) -> Array[Int] {
 pub fn encode_byte(data : String) -> Array[Int] {
   let mut result = []
   for i = 0; i < data.length(); i = i + 1 {
-    match data.get(i) {
-      Some(c) => result = result + [c] // 8 bits per byte
-      None => ()
-    }
+    let c = data.code_unit_at(i).to_int()
+    result = result + [c] // 8 bits per byte
   }
   result
 }
@@ -271,22 +255,18 @@ pub fn encode_kanji(data : String) -> Array[Int] {
   let mut result = []
   let mut i = 0
   while i < data.length() {
-    match data.get(i) {
-      Some(c) => {
-        // For proper Kanji encoding, we would need Shift JIS conversion
-        // For now, we'll implement a simplified version that handles basic Kanji
-        if is_kanji_character(c) {
-          // Encode Kanji character as 13-bit value
-          let kanji_value = encode_kanji_character(c)
-          result = result + [kanji_value]
-          i = i + 1
-        } else {
-          // Non-Kanji character, encode as byte
-          result = result + [c]
-          i = i + 1
-        }
-      }
-      None => i = i + 1
+    let c = data.code_unit_at(i).to_int()
+    // For proper Kanji encoding, we would need Shift JIS conversion
+    // For now, we'll implement a simplified version that handles basic Kanji
+    if is_kanji_character(c) {
+      // Encode Kanji character as 13-bit value
+      let kanji_value = encode_kanji_character(c)
+      result = result + [kanji_value]
+      i = i + 1
+    } else {
+      // Non-Kanji character, encode as byte
+      result = result + [c]
+      i = i + 1
     }
   }
   result
@@ -302,7 +282,7 @@ pub fn is_kanji_character(c : Int) -> Bool {
   // CJK Unified Ideographs: U+4E00-U+9FAF (19968-40879)
   (c >= 12352 && c <= 12447) || // Hiragana
   (c >= 12448 && c <= 12543) || // Katakana
-  (c >= 19968 && c <= 40879)    // CJK Unified Ideographs
+  (c >= 19968 && c <= 40879) // CJK Unified Ideographs
 }
 
 // Encode a Kanji character to its QR code value (simplified)
@@ -316,9 +296,9 @@ fn encode_kanji_character(c : Int) -> Int {
     // Map to a 13-bit value (0-8191)
     (c - 19968) % 8192
   } else if c >= 12352 && c <= 12447 { // Hiragana
-    (c - 12352) + 4000
+    c - 12352 + 4000
   } else if c >= 12448 && c <= 12543 { // Katakana
-    (c - 12448) + 4100
+    c - 12448 + 4100
   } else {
     c % 8192 // Fallback
   }
@@ -397,6 +377,7 @@ fn place_dark_module(matrix : Matrix, version : Version) -> Unit {
 }
 
 // Get alignment pattern positions for a given version
+
 ///|
 pub fn get_alignment_positions(version : Version) -> Array[Int] {
   match version {
@@ -425,6 +406,7 @@ pub fn get_alignment_positions(version : Version) -> Array[Int] {
 }
 
 // Place alignment pattern (5x5 pattern)
+
 ///|
 fn place_alignment_pattern(matrix : Matrix, x : Int, y : Int) -> Unit {
   let pattern = [
@@ -434,7 +416,7 @@ fn place_alignment_pattern(matrix : Matrix, x : Int, y : Int) -> Unit {
     [true, false, false, false, true],
     [true, true, true, true, true],
   ]
-  
+
   for i = 0; i < 5; i = i + 1 {
     for j = 0; j < 5; j = j + 1 {
       let mod = if pattern[i][j] { Module::Dark } else { Module::Light }
@@ -444,30 +426,32 @@ fn place_alignment_pattern(matrix : Matrix, x : Int, y : Int) -> Unit {
 }
 
 // Check if alignment pattern would conflict with finder patterns
+
 ///|
 fn conflicts_with_finder_pattern(x : Int, y : Int, size : Int) -> Bool {
   // Check distance from finder patterns (top-left, top-right, bottom-left)
-  let distance_tl = (x * x + y * y)
-  let distance_tr = ((x - (size - 1)) * (x - (size - 1)) + y * y)
-  let distance_bl = (x * x + (y - (size - 1)) * (y - (size - 1)))
-  
+  let distance_tl = x * x + y * y
+  let distance_tr = (x - (size - 1)) * (x - (size - 1)) + y * y
+  let distance_bl = x * x + (y - (size - 1)) * (y - (size - 1))
+
   // If too close to any finder pattern (within 7 modules), it conflicts
   distance_tl < 49 || distance_tr < 49 || distance_bl < 49
 }
 
 // Place all alignment patterns for the version
+
 ///|
 fn place_alignment_patterns(matrix : Matrix, version : Version) -> Unit {
   let positions = get_alignment_positions(version)
   let size = matrix.size
-  
+
   for i = 0; i < positions.length(); i = i + 1 {
     for j = 0; j < positions.length(); j = j + 1 {
       let x = positions[i]
       let y = positions[j]
-      
+
       // Don't place alignment pattern if it conflicts with finder patterns
-      if not(conflicts_with_finder_pattern(x, y, size)) {
+      if !conflicts_with_finder_pattern(x, y, size) {
         place_alignment_pattern(matrix, x, y)
       }
     }
@@ -531,7 +515,7 @@ fn place_data(matrix : Matrix, data : Array[Int]) -> Unit {
         }
       }
     }
-    up = not(up)
+    up = !up
     col = col - 2
   }
 }
@@ -556,14 +540,14 @@ pub fn is_data_position(matrix : Matrix, x : Int, y : Int) -> Bool {
     let version = (size - 17) / 4 // Calculate version from size
     let positions = get_alignment_positions(version)
     let mut is_alignment = false
-    
+
     for i = 0; i < positions.length(); i = i + 1 {
       for j = 0; j < positions.length(); j = j + 1 {
         let ax = positions[i]
         let ay = positions[j]
-        
+
         // Skip if this would conflict with finder patterns
-        if not(conflicts_with_finder_pattern(ax, ay, size)) {
+        if !conflicts_with_finder_pattern(ax, ay, size) {
           // Check if current position is within alignment pattern (5x5)
           if x >= ax - 2 && x <= ax + 2 && y >= ay - 2 && y <= ay + 2 {
             is_alignment = true
@@ -571,8 +555,8 @@ pub fn is_data_position(matrix : Matrix, x : Int, y : Int) -> Bool {
         }
       }
     }
-    
-    not(is_alignment)
+
+    !is_alignment
   }
 }
 
@@ -655,7 +639,7 @@ pub fn encode_with_mode_and_ec(
 // Galois Field arithmetic for GF(256)
 
 ///|
-let gf_exp = [
+let gf_exp : ReadOnlyArray[Int] = [
   1, 2, 4, 8, 16, 32, 64, 128, 29, 58, 116, 232, 205, 135, 19, 38, 76, 152, 45, 90,
   180, 117, 234, 201, 143, 3, 6, 12, 24, 48, 96, 192, 157, 39, 78, 156, 37, 74, 148,
   53, 106, 212, 181, 119, 238, 193, 159, 35, 70, 140, 5, 10, 20, 40, 80, 160, 93,
@@ -674,7 +658,7 @@ let gf_exp = [
 ]
 
 ///|
-let gf_log = [
+let gf_log : ReadOnlyArray[Int] = [
   0, 0, 1, 25, 2, 50, 26, 198, 3, 223, 51, 238, 27, 104, 199, 75, 4, 100, 224, 14,
   52, 141, 239, 129, 28, 193, 105, 248, 200, 8, 76, 113, 5, 138, 101, 47, 225, 36,
   15, 33, 53, 147, 142, 218, 240, 18, 130, 69, 29, 181, 194, 125, 106, 39, 249, 185,
@@ -823,19 +807,19 @@ pub fn get_error_correction_codewords(
   // Simplified table - in a full implementation, this would be a comprehensive lookup table
   if version == 1 {
     match ec_level {
-      ErrorCorrectionLevel::L => 7   // 7 error correction codewords
-      ErrorCorrectionLevel::M => 10  // 10 error correction codewords  
-      ErrorCorrectionLevel::Q => 13  // 13 error correction codewords
-      ErrorCorrectionLevel::H => 17  // 17 error correction codewords
+      ErrorCorrectionLevel::L => 7 // 7 error correction codewords
+      ErrorCorrectionLevel::M => 10 // 10 error correction codewords  
+      ErrorCorrectionLevel::Q => 13 // 13 error correction codewords
+      ErrorCorrectionLevel::H => 17 // 17 error correction codewords
     }
   } else {
     // Approximate calculation for other versions
     let total = get_total_codewords(version)
     match ec_level {
-      ErrorCorrectionLevel::L => total * 7 / 100   // ~7%
-      ErrorCorrectionLevel::M => total * 15 / 100  // ~15%
-      ErrorCorrectionLevel::Q => total * 25 / 100  // ~25%
-      ErrorCorrectionLevel::H => total * 30 / 100  // ~30%
+      ErrorCorrectionLevel::L => total * 7 / 100 // ~7%
+      ErrorCorrectionLevel::M => total * 15 / 100 // ~15%
+      ErrorCorrectionLevel::Q => total * 25 / 100 // ~25%
+      ErrorCorrectionLevel::H => total * 30 / 100 // ~30%
     }
   }
 }
@@ -843,20 +827,28 @@ pub fn get_error_correction_codewords(
 // Get total data capacity for version and error correction level
 
 ///|
-pub fn get_data_capacity(version : Version, ec_level : ErrorCorrectionLevel) -> Int {
+pub fn get_data_capacity(
+  version : Version,
+  ec_level : ErrorCorrectionLevel,
+) -> Int {
   let total_capacity = get_total_codewords(version)
   let ec_codewords = get_error_correction_codewords(version, ec_level)
   total_capacity - ec_codewords
 }
 
 // Calculate required data length including mode indicator and character count
+
 ///|
-fn calculate_required_length(data : String, mode : Mode, version : Version) -> Int {
+fn calculate_required_length(
+  data : String,
+  mode : Mode,
+  version : Version,
+) -> Int {
   let data_length = data.length()
-  
+
   // Mode indicator: 4 bits
   let mode_bits = 4
-  
+
   // Character count indicator bits (depends on version and mode)
   let count_bits = if version <= 9 {
     match mode {
@@ -880,22 +872,27 @@ fn calculate_required_length(data : String, mode : Mode, version : Version) -> I
       Mode::Kanji => 12
     }
   }
-  
+
   // Data bits (approximate)
   let data_bits = match mode {
-    Mode::Numeric => (data_length * 10 + 2) / 3  // ~3.33 bits per digit
-    Mode::Alphanumeric => (data_length * 11 + 1) / 2  // ~5.5 bits per char
-    Mode::Byte => data_length * 8  // 8 bits per byte
-    Mode::Kanji => data_length * 13  // 13 bits per Kanji
+    Mode::Numeric => (data_length * 10 + 2) / 3 // ~3.33 bits per digit
+    Mode::Alphanumeric => (data_length * 11 + 1) / 2 // ~5.5 bits per char
+    Mode::Byte => data_length * 8 // 8 bits per byte
+    Mode::Kanji => data_length * 13 // 13 bits per Kanji
   }
-  
+
   // Total bits needed, converted to bytes (rounded up)
   (mode_bits + count_bits + data_bits + 7) / 8
 }
 
 // Find the minimum QR version that can hold the data
+
 ///|
-pub fn find_minimum_version(data : String, mode : Mode, ec_level : ErrorCorrectionLevel) -> Version {
+pub fn find_minimum_version(
+  data : String,
+  mode : Mode,
+  ec_level : ErrorCorrectionLevel,
+) -> Version {
   for version = 1; version <= 40; version = version + 1 {
     let capacity = get_data_capacity(version, ec_level)
     let required = calculate_required_length(data, mode, version)
@@ -903,7 +900,7 @@ pub fn find_minimum_version(data : String, mode : Mode, ec_level : ErrorCorrecti
       return version
     }
   }
-  
+
   40 // Return maximum version if data is too large
 }
 
@@ -1107,18 +1104,18 @@ pub fn encode_version_info(version : Version) -> Int {
   } else {
     // Version information with BCH error correction
     let version_data = version // 6 bits for version (7-40)
-    
+
     // BCH(18,6) generator polynomial for version info
     let generator = 0x1F25 // BCH generator polynomial
     let mut version_bits = version_data << 12
-    
+
     for i = 0; i < 6; i = i + 1 {
       if ((version_bits >> 17) & 1) == 1 {
         version_bits = version_bits ^ generator
       }
       version_bits = version_bits << 1
     }
-    
+
     (version_data << 12) | (version_bits >> 6)
   }
 }
@@ -1130,7 +1127,7 @@ fn place_version_info(matrix : Matrix, version : Version) -> Unit {
   if version >= 7 {
     let version_info = encode_version_info(version)
     let size = matrix.size
-    
+
     // Place version info in bottom-left corner
     for i = 0; i < 6; i = i + 1 {
       for j = 0; j < 3; j = j + 1 {
@@ -1139,7 +1136,7 @@ fn place_version_info(matrix : Matrix, version : Version) -> Unit {
         set_module(matrix, i, size - 11 + j, mod)
       }
     }
-    
+
     // Place version info in top-right corner (transposed)
     for i = 0; i < 6; i = i + 1 {
       for j = 0; j < 3; j = j + 1 {
@@ -1314,10 +1311,10 @@ pub fn generate_qr_with_mask(
   // Place format information
   let format_info = encode_format_info(error_correction, best_mask)
   place_format_info(matrix, format_info)
-  
+
   // Place version information (for versions 7+)
   place_version_info(matrix, version)
-  
+
   { version, error_correction, mode, data, matrix }
 }
 

@@ -1,5 +1,4 @@
 import {
-  "bobzhang/qrc/render",
 } for "test"
 
 options(
