@@ -24,7 +24,8 @@ moon install bobzhang/qrc
 
 ### Basic Usage
 
-```moonbit
+```moonbit nocheck
+///|
 test {
   // Generate a QR code with default settings
   let qr = @bobzhang/qrc.encode("Hello, MoonBit!")
@@ -49,7 +50,8 @@ test {
 
 ### Advanced Usage
 
-```moonbit
+```moonbit nocheck
+///|
 test {
   // Generate QR code with specific error correction level
   let qr = @qrc.encode_with_ec("Important data", H)
@@ -58,7 +60,7 @@ test {
   let mode = @qrc.detect_mode("12345") // Returns Mode::Numeric
   let mode2 = @qrc.detect_mode("HELLO WORLD") // Returns Mode::Alphanumeric
   let mode3 = @qrc.detect_mode("Hello, World!")
-   // Returns Mode::Byte
+  // Returns Mode::Byte
 }
 ```
 

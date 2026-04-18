@@ -2,63 +2,77 @@
 package "bobzhang/qrc"
 
 // Values
-fn apply_error_correction(Array[Int], Mode, Int, ErrorCorrectionLevel) -> Array[Int]
+pub fn apply_error_correction(Array[Int], Mode, Int, ErrorCorrectionLevel) -> Array[Int]
 
-fn apply_mask(Matrix, MaskPattern) -> Unit
+pub fn apply_mask(Matrix, MaskPattern) -> Unit
 
-fn choose_best_mask(Matrix, ErrorCorrectionLevel) -> MaskPattern
+pub fn choose_best_mask(Matrix, ErrorCorrectionLevel) -> MaskPattern
 
-fn detect_mode(String) -> Mode
+pub fn detect_mode(String) -> Mode
 
-fn encode(String) -> QRCode
+pub fn encode(String) -> QRCode
 
-fn encode_alphanumeric(String) -> Array[Int]
+pub fn encode_alphanumeric(String) -> Array[Int]
 
-fn encode_byte(String) -> Array[Int]
+pub fn encode_byte(String) -> Array[Int]
 
-fn encode_data(String, Mode) -> Array[Int]
+pub fn encode_data(String, Mode) -> Array[Int]
 
-fn encode_numeric(String) -> Array[Int]
+pub fn encode_kanji(String) -> Array[Int]
 
-fn encode_with_ec(String, ErrorCorrectionLevel) -> QRCode
+pub fn encode_numeric(String) -> Array[Int]
 
-fn encode_with_mode_and_ec(String, Mode, Int, ErrorCorrectionLevel) -> QRCode
+pub fn encode_version_info(Int) -> Int
 
-fn evaluate_mask_penalty(Matrix) -> Int
+pub fn encode_with_ec(String, ErrorCorrectionLevel) -> QRCode
 
-fn generate_qr(String, ErrorCorrectionLevel) -> QRCode
+pub fn encode_with_mode_and_ec(String, Mode, Int, ErrorCorrectionLevel) -> QRCode
 
-fn generate_qr_with_mask(String, ErrorCorrectionLevel) -> QRCode
+pub fn evaluate_mask_penalty(Matrix) -> Int
 
-fn get_error_correction_codewords(Int, ErrorCorrectionLevel) -> Int
+pub fn find_minimum_version(String, Mode, ErrorCorrectionLevel) -> Int
 
-fn get_module(Matrix, Int, Int) -> Module
+pub fn generate_qr(String, ErrorCorrectionLevel) -> QRCode
 
-fn gf_div(Int, Int) -> Int
+pub fn generate_qr_with_mask(String, ErrorCorrectionLevel) -> QRCode
 
-fn gf_mul(Int, Int) -> Int
+pub fn get_alignment_positions(Int) -> Array[Int]
 
-fn init_matrix(Int) -> Matrix
+pub fn get_data_capacity(Int, ErrorCorrectionLevel) -> Int
 
-fn make_byte_mode() -> Mode
+pub fn get_error_correction_codewords(Int, ErrorCorrectionLevel) -> Int
 
-fn make_ec_level_h() -> ErrorCorrectionLevel
+pub fn get_module(Matrix, Int, Int) -> Module
 
-fn make_ec_level_l() -> ErrorCorrectionLevel
+pub fn gf_div(Int, Int) -> Int
 
-fn make_ec_level_m() -> ErrorCorrectionLevel
+pub fn gf_mul(Int, Int) -> Int
 
-fn make_ec_level_q() -> ErrorCorrectionLevel
+pub fn init_matrix(Int) -> Matrix
 
-fn make_kanji_mode() -> Mode
+pub fn is_data_position(Matrix, Int, Int) -> Bool
 
-fn make_mask_pattern_0() -> MaskPattern
+pub fn is_kanji_character(Int) -> Bool
 
-fn new_matrix(Int) -> Matrix
+pub fn make_byte_mode() -> Mode
 
-fn set_module(Matrix, Int, Int, Module) -> Unit
+pub fn make_ec_level_h() -> ErrorCorrectionLevel
 
-fn version_to_size(Int) -> Int
+pub fn make_ec_level_l() -> ErrorCorrectionLevel
+
+pub fn make_ec_level_m() -> ErrorCorrectionLevel
+
+pub fn make_ec_level_q() -> ErrorCorrectionLevel
+
+pub fn make_kanji_mode() -> Mode
+
+pub fn make_mask_pattern_0() -> MaskPattern
+
+pub fn new_matrix(Int) -> Matrix
+
+pub fn set_module(Matrix, Int, Int, Module) -> Unit
+
+pub fn version_to_size(Int) -> Int
 
 // Errors
 
@@ -68,8 +82,7 @@ pub(all) enum ErrorCorrectionLevel {
   M
   Q
   H
-}
-impl Eq for ErrorCorrectionLevel
+} derive(Eq)
 
 pub enum MaskPattern {
   Pattern0
@@ -80,8 +93,7 @@ pub enum MaskPattern {
   Pattern5
   Pattern6
   Pattern7
-}
-impl Eq for MaskPattern
+} derive(Eq)
 
 pub struct Matrix {
   size : Int
@@ -93,14 +105,12 @@ pub enum Mode {
   Alphanumeric
   Byte
   Kanji
-}
-impl Eq for Mode
+} derive(Eq)
 
 pub enum Module {
   Light
   Dark
-}
-impl Eq for Module
+} derive(Eq)
 
 pub struct QRCode {
   version : Int
@@ -111,7 +121,7 @@ pub struct QRCode {
 }
 
 // Type aliases
-pub typealias Int as Version
+pub type Version = Int
 
 // Traits
 
