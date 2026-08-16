@@ -83,6 +83,8 @@ pub(all) enum ErrorCorrectionLevel {
   Q
   H
 } derive(Eq)
+pub fn ErrorCorrectionLevel::equal(Self, Self) -> Bool
+pub fn ErrorCorrectionLevel::not_equal(Self, Self) -> Bool
 
 pub enum MaskPattern {
   Pattern0
@@ -94,6 +96,8 @@ pub enum MaskPattern {
   Pattern6
   Pattern7
 } derive(Eq)
+pub fn MaskPattern::equal(Self, Self) -> Bool
+pub fn MaskPattern::not_equal(Self, Self) -> Bool
 
 pub struct Matrix {
   size : Int
@@ -106,11 +110,15 @@ pub enum Mode {
   Byte
   Kanji
 } derive(Eq)
+pub fn Mode::equal(Self, Self) -> Bool
+pub fn Mode::not_equal(Self, Self) -> Bool
 
 pub enum Module {
   Light
   Dark
 } derive(Eq)
+pub fn Module::equal(Self, Self) -> Bool
+pub fn Module::not_equal(Self, Self) -> Bool
 
 pub struct QRCode {
   version : Int
@@ -124,4 +132,3 @@ pub struct QRCode {
 pub type Version = Int
 
 // Traits
-
