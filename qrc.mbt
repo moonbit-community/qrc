@@ -8,6 +8,9 @@ pub(all) enum ErrorCorrectionLevel {
   H // ~30% correction
 } derive(Eq)
 
+///|
+pub extend ErrorCorrectionLevel with Eq::{not_equal, equal}
+
 // QR Code Data Modes
 
 ///|
@@ -17,6 +20,9 @@ pub enum Mode {
   Byte
   Kanji
 } derive(Eq)
+
+///|
+pub extend Mode with Eq::{not_equal, equal}
 
 // QR Code Version (1-40)
 
@@ -30,6 +36,9 @@ pub enum Module {
   Light
   Dark
 } derive(Eq)
+
+///|
+pub extend Module with Eq::{not_equal, equal}
 
 // QR Code Matrix
 
@@ -54,11 +63,11 @@ pub struct QRCode {
 
 ///|
 pub fn new_matrix(size : Int) -> Matrix {
-  let modules = Array::new(capacity=size)
+  let modules = Array(capacity=size)
   for i = 0; i < size; i = i + 1 {
     modules.push(Array::make(size, Module::Light))
   }
-  { size, modules }
+  { size, modules, }
 }
 
 // Get module at position
@@ -587,7 +596,7 @@ pub fn generate_qr(
 
   // Place corrected data in matrix
   place_data(matrix, bit_data)
-  { version, error_correction, mode, data, matrix }
+  { version, error_correction, mode, data, matrix, }
 }
 
 // Simple API functions
@@ -631,7 +640,7 @@ pub fn encode_with_mode_and_ec(
 
   // Place corrected data in matrix
   place_data(matrix, bit_data)
-  { version, error_correction: ec, mode, data, matrix }
+  { version, error_correction: ec, mode, data, matrix, }
 }
 
 // Reed-Solomon Error Correction Implementation
@@ -1026,6 +1035,9 @@ pub enum MaskPattern {
   Pattern7 // ((i + j) % 2 + (i * j) % 3) % 2 == 0
 } derive(Eq)
 
+///|
+pub extend MaskPattern with Eq::{not_equal, equal}
+
 // Apply mask pattern to QR matrix
 
 ///|
@@ -1315,7 +1327,7 @@ pub fn generate_qr_with_mask(
   // Place version information (for versions 7+)
   place_version_info(matrix, version)
 
-  { version, error_correction, mode, data, matrix }
+  { version, error_correction, mode, data, matrix, }
 }
 
 // Helper function to create mask patterns for tests

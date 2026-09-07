@@ -1,0 +1,13 @@
+name = "bobzhang/qrc"
+
+version = "0.1.1"
+
+readme = "README.md"
+
+repository = "https://github.com/bobzhang/qrc"
+
+license = "ISC"
+
+keywords = [ "qr-code", "encoder", "barcode" ]
+
+description = "QR code encoder for MoonBit - port of dbuenzli/qrc"
