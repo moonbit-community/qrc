@@ -23,4 +23,3 @@ pub fn to_text(@qrc.QRCode) -> String
 // Type aliases
 
 // Traits
-
