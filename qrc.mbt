@@ -63,7 +63,7 @@ pub struct QRCode {
 
 ///|
 pub fn new_matrix(size : Int) -> Matrix {
-  let modules = Array(capacity=size)
+  let modules = Array::new(capacity=size)
   for i = 0; i < size; i = i + 1 {
     modules.push(Array::make(size, Module::Light))
   }
